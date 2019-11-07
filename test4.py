@@ -12,7 +12,6 @@ from  pybloom_live import ScalableBloomFilter as SBF
 
 a = 1
 file_name = ""
-global bf_file
 global bf_ready
 
 def Extractor(url):
@@ -20,11 +19,8 @@ def Extractor(url):
     return str[0]
 
 async def wrt(url):
-    global bf_file
-    if not url in bf_file:
-        bf_file.add(url)
-        async with aiofiles.open("login_url.txt", 'a+') as afp:
-            await afp.write(url + "\n")
+    async with aiofiles.open("login_url.txt", 'a+') as afp:
+        await afp.write(url + "\n")
 
 async def finding(url, r):
     try:
@@ -32,8 +28,6 @@ async def finding(url, r):
         pd_ele = pq.find("input[type='password']")
         ancestor_ele = pd_ele.closest('form')
         if ancestor_ele:
-            print(url, ":", r.html.url)
-            print("Extractor:", Extractor(r.html.url))
             await wrt(r.html.url)
     except Exception as e:
         print(e)
@@ -43,14 +37,14 @@ async def finding(url, r):
 async def check(url, r):
     global bf_ready
     try:
-        await finding(url, r)
+        if not Extractor(r.html.url) in bf_ready:
+            bf_ready.add(Extractor(r.html.url))
+            await finding(url, r)
     except:
         pass
     for i in r.html.absolute_links:
-        if not Extractor(i) in  bf_ready:
-            # print("checking:", i)
+        if not Extractor(i) in bf_ready:
             bf_ready.add(Extractor(i))
-            # print(Extractor(i))
             try:
                 asession = AsyncHTMLSession()
                 r_ = await  asession.get(i)
@@ -59,15 +53,12 @@ async def check(url, r):
             except:
                 pass
 
-
 async def spider(url_s, len_):
-    global a
+    global a, bf_ready
     print(a, "/", len_, ":", url_s)
     a = a + 1
     if not Extractor(url_s) in bf_ready:
-        # print("checking: ", url_s)
         bf_ready.add(Extractor(url_s))
-        # print(Extractor(url_s))
         try:
             asession = AsyncHTMLSession()
             r = await asession.get(url_s)
@@ -82,7 +73,6 @@ async def spider(url_s, len_):
 
 def test(f_json):
     for key in f_json:
-
         if re.match(r'http_only', key):
             len_ = len(f_json['http_only'])
             loop = asyncio.get_event_loop()
@@ -107,7 +97,6 @@ def test(f_json):
             continue
 
 def main():
-    global file_name
     file_name = input("input the test name: ")
     with open(file_name, 'r') as f:
         f_json = json.load(f)
@@ -115,8 +104,7 @@ def main():
     len_tmp = len(f_json["http_only"]) + len(f_json["https_only"]) + len(f_json["https_default"]) + len(f_json["https_reachable"])
 
     # 初始化布隆参数
-    global bf_file, bf_ready
-    bf_file = SBF(initial_capacity=len_tmp, error_rate=0.001, mode=SBF.LARGE_SET_GROWTH)
+    global bf_ready
     bf_ready = SBF(initial_capacity=len_tmp*50, error_rate=0.001, mode=SBF.LARGE_SET_GROWTH)
     # bf_file = bloom.BloomFilter(error_rate = 0.001, element_num = len_tmp )
     # bf_ready = bloompy.BloomFilter(error_rate = 0.001, element_num = len_tmp*50)
