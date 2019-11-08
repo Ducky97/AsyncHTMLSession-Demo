@@ -48,8 +48,10 @@ async def check(url, r):
             try:
                 asession = AsyncHTMLSession()
                 r_ = await  asession.get(i)
-                time.sleep(2)
-                await finding(url, r_)
+                # time.sleep(2)
+                if Extractor(r_.html.url) not in bf_ready:
+                    bf_ready.add(Extractor(r_.html.url))
+                    await finding(url, r_)
             except:
                 pass
 
@@ -62,7 +64,7 @@ async def spider(url_s, len_):
         try:
             asession = AsyncHTMLSession()
             r = await asession.get(url_s)
-            time.sleep(2)
+            # time.sleep(2)
             await check(url_s, r)
         except Exception as e:
             print(e)
