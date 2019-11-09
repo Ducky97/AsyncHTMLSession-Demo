@@ -13,14 +13,19 @@ from  pybloom_live import ScalableBloomFilter as SBF
 a = 1
 file_name = ""
 global bf_ready
+global bf_file
 
 def Extractor(url):
     str = url.strip().split("?", 1)
     return str[0]
 
-async def wrt(url):
-    async with aiofiles.open("login_url.txt", 'a+') as afp:
-        await afp.write(url + "\n")
+async def wrt(url, act):
+    global bf_file
+    if url not in bf_file:
+        bf_file.add(url)
+        async with aiofiles.open("login_url.txt", 'a+') as afp:
+            print("find! ", url, "action", act)
+            await afp.write(url + "\t" + act + "\n")
 
 async def finding(url, r):
     try:
@@ -28,7 +33,12 @@ async def finding(url, r):
         pd_ele = pq.find("input[type='password']")
         ancestor_ele = pd_ele.closest('form')
         if ancestor_ele:
-            await wrt(r.html.url)
+            act = ""
+            try:
+                act = ancestor_ele.attr['action']
+            except:
+                pass
+            await wrt(r.html.url, act)
     except Exception as e:
         print(e)
         logging.error(e)
@@ -39,6 +49,8 @@ async def check(url, r):
     try:
         if not Extractor(r.html.url) in bf_ready:
             bf_ready.add(Extractor(r.html.url))
+            await finding(url, r)
+            await r.html.arender
             await finding(url, r)
     except:
         pass
@@ -51,6 +63,8 @@ async def check(url, r):
                 # time.sleep(2)
                 if Extractor(r_.html.url) not in bf_ready:
                     bf_ready.add(Extractor(r_.html.url))
+                    await finding(url, r_)
+                    await r_.html.arender
                     await finding(url, r_)
             except:
                 pass
@@ -107,7 +121,9 @@ def main():
 
     # 初始化布隆参数
     global bf_ready
+    global bf_file
     bf_ready = SBF(initial_capacity=len_tmp*50, error_rate=0.001, mode=SBF.LARGE_SET_GROWTH)
+    bf_file = SBF(initial_capacity=len_tmp*50, error_rate=0.001, mode=SBF.LARGE_SET_GROWTH)
     # bf_file = bloom.BloomFilter(error_rate = 0.001, element_num = len_tmp )
     # bf_ready = bloompy.BloomFilter(error_rate = 0.001, element_num = len_tmp*50)
     # 开始测试
