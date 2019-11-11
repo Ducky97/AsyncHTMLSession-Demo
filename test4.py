@@ -24,8 +24,8 @@ async def wrt(url, act):
     if url not in bf_file:
         bf_file.add(url)
         async with aiofiles.open("login_url.txt", 'a+') as afp:
-            print("find! ", url, "action", act)
-            await afp.write(url + "\t" + act + "\n")
+            print("find! {} ** {}".format(url, act))
+            await afp.write(url + ", " + str(act) + "\n")
 
 async def finding(url, r):
     try:
@@ -36,6 +36,8 @@ async def finding(url, r):
             act = ""
             try:
                 act = ancestor_ele.attr['action']
+                if not re.match(r'http.*', act):
+                    act = r.html.url + act
             except:
                 pass
             await wrt(r.html.url, act)
