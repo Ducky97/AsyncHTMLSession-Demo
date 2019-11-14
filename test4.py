@@ -14,6 +14,7 @@ a = 1
 file_name = ""
 global bf_ready
 global bf_file
+global school_name
 
 def Extractor(url):
     str = url.strip().split("?", 1)
@@ -23,7 +24,8 @@ async def wrt(url, act):
     global bf_file
     if url not in bf_file:
         bf_file.add(url)
-        async with aiofiles.open("login_url.txt", 'a+') as afp:
+        file_name_t = school_name + "_login_url.txt"
+        async with aiofiles.open(file_name_t, 'a+') as afp:
             print("find! {} ** {}".format(url, act))
             await afp.write(url + ", " + str(act) + "\n")
 
@@ -61,12 +63,12 @@ async def check(url, r):
             bf_ready.add(Extractor(i))
             try:
                 asession = AsyncHTMLSession()
-                r_ = await  asession.get(i)
+                r_ = await  asession.get(i, timeout=5)
                 # time.sleep(2)
                 if Extractor(r_.html.url) not in bf_ready:
                     bf_ready.add(Extractor(r_.html.url))
                     await finding(url, r_)
-                    await r_.html.arender
+                    await r_.html.arender(retries=3)
                     await finding(url, r_)
             except:
                 pass
@@ -79,7 +81,7 @@ async def spider(url_s, len_):
         bf_ready.add(Extractor(url_s))
         try:
             asession = AsyncHTMLSession()
-            r = await asession.get(url_s)
+            r = await asession.get(url_s, timeout=5)
             # time.sleep(2)
             await check(url_s, r)
         except Exception as e:
@@ -94,7 +96,7 @@ def test(f_json):
         if re.match(r'http_only', key):
             len_ = len(f_json['http_only'])
             loop = asyncio.get_event_loop()
-            cor = [spider("http://"+i, len_) for i in f_json["http_only"]]
+            cor = [spider("http://" + i, len_) for i in f_json["http_only"]]
             loop.run_until_complete(asyncio.gather(*cor))
         elif re.match(r'https_only', key):
             len_ = len(f_json['https_only'])
@@ -114,8 +116,12 @@ def test(f_json):
         else:
             continue
 
+
 def main():
+    global school_name
+
     file_name = input("input the test name: ")
+    school_name = file_name.strip().split('.')[0]
     with open(file_name, 'r') as f:
         f_json = json.load(f)
 
