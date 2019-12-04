@@ -28,7 +28,7 @@ if __name__ == '__main__':
 
     # 初始化布隆函数
     bf_domain = SBF(mode=SBF.LARGE_SET_GROWTH)
-    fp = open('login_url4.txt', 'r')
+    fp = open('tsinghua_login_fin.txt', 'r')
     r_line = fp.readline()
     while r_line:
         r_line = r_line.strip()
@@ -37,7 +37,7 @@ if __name__ == '__main__':
         # 处理字符串
         domain = re.search(r'(http|https)://(.*?)/.*', r_line)
         if domain.group(2) not in bf_domain:
-            if 'sjtu' in domain.group(2):
+            if 'tsinghua' in domain.group(2)or '\d+\.\d+\.\d+\.\d+'in domain.group(2):
                 bf_domain.add(domain.group(2))
                 result = r_line.split(', ')
                 # print(result)
